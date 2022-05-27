@@ -6,7 +6,7 @@ namespace ProstoDajteMne3
 {
     public class MorseCode
     {
-        private static Dictionary<char, string> _morseAlphabetDictionary;
+        public static Dictionary<char, string> _morseAlphabetDictionary;
 
         static void Main()
         {
@@ -20,7 +20,7 @@ namespace ProstoDajteMne3
             Console.ReadLine();
         }
 
-        private static void InitializeDictionary()
+        public static void InitializeDictionary()
         {
             _morseAlphabetDictionary = new Dictionary<char, string>()
                                    {
@@ -75,7 +75,7 @@ namespace ProstoDajteMne3
             return input;
         }
 
-        private static string Translate(string input)
+        public static string Translate(string input)
         {
             StringBuilder stringBuilder = new StringBuilder();
 
