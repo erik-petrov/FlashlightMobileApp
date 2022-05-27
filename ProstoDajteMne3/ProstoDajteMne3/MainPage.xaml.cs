@@ -38,7 +38,7 @@ namespace ProstoDajteMne3
     public class FlashlightPage : ContentPage
     {
         
-        bool on, flick, sos;
+        bool on, flick, sos, busy;
         Slider slider;
         Entry morse;
         public FlashlightPage()
@@ -77,10 +77,13 @@ namespace ProstoDajteMne3
 
         private async void MorseTranslate_Clicked(object sender, EventArgs e)
         {
+            if (busy)
+                return;
             if (!string.IsNullOrWhiteSpace(morse.Text))
             {
                 MorseCode.InitializeDictionary();
                 string morseCode = MorseCode.Translate(morse.Text);
+                busy = true;
                 for (int i = 0; i < morseCode.Length; i++)
                 {
                     if (morseCode[i] == '.')
@@ -98,6 +101,7 @@ namespace ProstoDajteMne3
                     else
                         await Task.Delay(600);
                 }
+                busy = false;
             }
         }
 
