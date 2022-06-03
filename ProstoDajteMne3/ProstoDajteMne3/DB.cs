@@ -2,88 +2,46 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using Xamarin.Forms;
 
 namespace ProstoDajteMne3
 {
-    internal class DB
+    public class DB
     {
-        static SQLiteAsyncConnection Database;
-
-        public static readonly AsyncLazy<DB> Instance = new AsyncLazy<DB>(async () =>
+        SQLiteConnection database;
+        public DB(string filename)
         {
-            var instance = new DB();
-            CreateTableResult result = await Database.CreateTableAsync<MorseCodeTemplate>();
-            return instance;
-        });
-
-        public DB()
-        {
-            Database = new SQLiteAsyncConnection(Constants.DatabasePath, Constants.Flags);
+            string databasePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), filename);
+            database = new SQLiteConnection(databasePath);
+            database.CreateTable<MorseCodeTemplate>();
         }
-        public Task<List<MorseCodeTemplate>> GetItemsAsync()
+        public IEnumerable<MorseCodeTemplate> GetItems()
         {
-            return Database.Table<MorseCodeTemplate>().ToListAsync();
-        }
+            return (from i in database.Table<MorseCodeTemplate>() select i).ToList();
 
-        public Task<MorseCodeTemplate> GetItemAsync(int id)
+        }
+        public MorseCodeTemplate GetItem(int id)
         {
-            return Database.Table<MorseCodeTemplate>().Where(i => i.ID == id).FirstOrDefaultAsync();
+            return database.Get<MorseCodeTemplate>(id);
         }
-
-        public Task<int> SaveItemAsync(MorseCodeTemplate item)
+        public int DeleteItem(int id)
+        {
+            return database.Delete<MorseCodeTemplate>(id);
+        }
+        public int SaveItem(MorseCodeTemplate item)
         {
             if (item.ID != 0)
             {
-                return Database.UpdateAsync(item);
+                database.Update(item);
+                return item.ID;
             }
             else
             {
-                return Database.InsertAsync(item);
-            }
-        }
-
-        public Task<int> DeleteItemAsync(MorseCodeTemplate item)
-        {
-            return Database.DeleteAsync(item);
-        }
-    }
-    public class AsyncLazy<T>
-    {
-        readonly Lazy<Task<T>> instance;
-
-        public AsyncLazy(Func<T> factory)
-        {
-            instance = new Lazy<Task<T>>(() => Task.Run(factory));
-        }
-
-        public AsyncLazy(Func<Task<T>> factory)
-        {
-            instance = new Lazy<Task<T>>(() => Task.Run(factory));
-        }
-
-        public TaskAwaiter<T> GetAwaiter()
-        {
-            return instance.Value.GetAwaiter();
-        }
-    }
-    public static class Constants
-    {
-        public const string DatabaseFilename = "SQLMorse.db3";
-
-        public const SQLite.SQLiteOpenFlags Flags =
-            SQLite.SQLiteOpenFlags.ReadWrite |
-            SQLite.SQLiteOpenFlags.Create |
-            SQLite.SQLiteOpenFlags.SharedCache;
-
-        public static string DatabasePath
-        {
-            get
-            {
-                var basePath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                return Path.Combine(basePath, DatabaseFilename);
+                return database.Insert(item);
             }
         }
     }

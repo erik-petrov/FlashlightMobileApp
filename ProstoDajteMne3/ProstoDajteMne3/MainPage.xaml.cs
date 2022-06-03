@@ -37,7 +37,6 @@ namespace ProstoDajteMne3
     }
     public class FlashlightPage : ContentPage
     {
-
         bool on, flick, sos, busy;
         Slider slider;
         Entry morse;
@@ -68,16 +67,49 @@ namespace ProstoDajteMne3
             {
                 Text = "Выбрать сообщение из БД и сыграть."
             };
+            Button stopPlaying = new Button
+            {
+                Text = "Остановить любое проигрывание."
+            };
+            Button chooseAndDelete = new Button
+            {
+                Text = "Выбрать и удалить сообщение."
+            };
             morse = new Entry();
             chooseAndPlay.Clicked += ChooseAndPlay_Clicked;
             morseTranslate.Clicked += MorseTranslate_Clicked;
             enableSos.Clicked += EnableSos_Clicked;
             enableSlider.Clicked += EnableSlider_Clicked;
             _switch.Clicked += _switch_Clicked;
+            chooseAndDelete.Clicked += ChooseAndDelete_Clicked;
+            stopPlaying.Clicked += StopPlaying_Clicked;
             Content = new StackLayout
             {
-                Children = { _switch, slider, enableSlider, enableSos, morseTranslate, chooseAndPlay}
+                Children = { _switch, slider, enableSlider, enableSos, morseTranslate, chooseAndPlay, chooseAndDelete, stopPlaying}
             };
+        }
+
+        private async void ChooseAndDelete_Clicked(object sender, EventArgs e)
+        {
+            Dictionary<int, string> pairs = new Dictionary<int, string>();
+            List<MorseCodeTemplate> items = (List<MorseCodeTemplate>)App.Database.GetItems();
+            string[] names = new string[items.Count];
+            for (int i = 0; i < names.Length; i++)
+            {
+                pairs.Add((int)items[i].ID, items[i].Name);
+                names[i] = items[i].Name;
+            }
+
+            string action = await DisplayActionSheet("Выберите сообщение для удаленя.", "Отмена", null, names);
+            if (action == "Отмена")
+                return;
+            int id = pairs.FirstOrDefault(x => x.Value == action).Key;
+            App.Database.DeleteItem(id);
+        }
+
+        private void StopPlaying_Clicked(object sender, EventArgs e)
+        {
+            busy = false;
         }
 
         private async void ChooseAndPlay_Clicked(object sender, EventArgs e)
@@ -85,8 +117,7 @@ namespace ProstoDajteMne3
             if (busy)
                 return;
             Dictionary<int, string> pairs = new Dictionary<int, string>();
-            DB database = new DB();
-            List<MorseCodeTemplate> items = await database.GetItemsAsync();
+            List<MorseCodeTemplate> items = (List<MorseCodeTemplate>)App.Database.GetItems();
             string[] names = new string[items.Count];
             for (int i = 0; i < names.Length; i++)
             {
@@ -98,7 +129,7 @@ namespace ProstoDajteMne3
             if (action == "Отмена")
                 return;
             int id = pairs.FirstOrDefault(x => x.Value == action).Key;
-            playMorse(database.GetItemAsync(id).Result.Morse);
+            playMorse(App.Database.GetItem(id).Morse);
         }
 
         private async void playMorse(string morseCode)
@@ -106,6 +137,8 @@ namespace ProstoDajteMne3
             busy = true;
             for (int i = 0; i < morseCode.Length; i++)
             {
+                if (!busy)
+                    return;
                 if (morseCode[i] == '.')
                 {
                     await Flashlight.TurnOnAsync();
@@ -242,8 +275,7 @@ namespace ProstoDajteMne3
                 msg.Text = text.Text;
                 msg.Name = name.Text;
                 msg.Morse = MorseCode.Translate(text.Text);
-                DB database = new DB();
-                await database.SaveItemAsync(msg);
+                App.Database.SaveItem(msg);
                 await Navigation.PopAsync();
             }
             else
